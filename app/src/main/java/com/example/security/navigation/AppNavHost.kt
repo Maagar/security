@@ -1,5 +1,6 @@
 package com.example.security.navigation
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -14,9 +15,12 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         startDestination = Screen.signIn.route
     ) {
         composable(Screen.signIn.route) {
-            SignInScreen("Sign In", modifier)
+            SignInScreen(modifier, navigateToSignUp = {
+                navController.navigate(Screen.signUp.route)
+            })
         }
         composable(Screen.signUp.route) {
+            Text("Sign Up")
         }
     }
 }
