@@ -11,20 +11,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.security.R
+import com.example.security.presentation.screen.viewModel.AuthViewModel
 import org.koin.compose.koinInject
 
 @Composable
 fun SignInScreen(modifier: Modifier = Modifier, navigateToSignUp: () -> Unit) {
-    val signInViewModel: SignInViewModel = koinInject()
-    val email by signInViewModel.email.collectAsState()
-    val password by signInViewModel.password.collectAsState()
+    val authViewModel: AuthViewModel = koinInject()
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier.fillMaxSize(),
@@ -34,11 +37,11 @@ fun SignInScreen(modifier: Modifier = Modifier, navigateToSignUp: () -> Unit) {
         Text("Security", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
             value = email,
-            onValueChange = { signInViewModel.updateEmail(it) },
+            onValueChange = { email = it },
             modifier = Modifier.padding(16.dp)
         )
-        OutlinedTextField(value = password, onValueChange = { signInViewModel.updatePassword(it) })
-        Button(onClick = { signInViewModel.signIn() }) {
+        OutlinedTextField(value = password, onValueChange = { password = it })
+        Button(onClick = {  }) {
             Text(stringResource(R.string.sign_in))
         }
         Row {
