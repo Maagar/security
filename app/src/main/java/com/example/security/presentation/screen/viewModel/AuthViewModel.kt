@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class authUIState(
+data class AuthUIState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val operationSuccess: Boolean = false
+    val operationSuccess: Boolean = false,
+    val shouldStartPhoneNumberVerification: Boolean = false,
+    val isCodeSent: Boolean = false,
+    val verificationId: String? = null,
 )
 
 class AuthViewModel(
@@ -22,13 +25,91 @@ class AuthViewModel(
 
     val authState: StateFlow<FirebaseUser?> = repository.getAuthState()
 
-    private val _uiState = MutableStateFlow(authUIState())
-    val uiState: StateFlow<authUIState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(AuthUIState())
+    val uiState: StateFlow<AuthUIState> = _uiState.asStateFlow()
 
     fun onLoginClick(email: String, password: String) {
+        if (email.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(error = "Email and password cannot be blank") }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, operationSuccess = false) }
 
+            val result = repository.signIn(email, password)
+            result.onSuccess {
+                _uiState.update { it.copy(isLoading = false, operationSuccess = true) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, error = error.message) }
+            }
+
         }
     }
+
+    fun onRegisterClick(email: String, password: String) {
+        if (email.isBlank() || password.isBlank()) {
+            _uiState.update { it.copy(error = "Fill out all fields") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            val result = repository.signUp(email, password)
+            result.onSuccess {
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        shouldStartPhoneNumberVerification = true,
+                        error = null
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, error = error.message) }
+            }
+        }
+    }
+
+    fun onCodeSent(verificationId: String) {
+        _uiState.update {
+            it.copy(
+                isCodeSent = true,
+                verificationId = verificationId,
+                shouldStartPhoneNumberVerification = false
+            )
+        }
+    }
+
+    fun onVerifySmsCode(code: String) {
+        val verificationId = _uiState.value.verificationId
+        if (verificationId == null) {
+            _uiState.update { it.copy(error = "Verification ID is missing") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val result = repository.linkPhoneNumber(verificationId, code)
+
+            result.onSuccess {
+                _uiState.update { it.copy(isLoading = false, operationSuccess = true) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, error = error.message) }
+            }
+        }
+    }
+
+    fun onRegistrationFailedOrCancelled() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            repository.deleteAccount()
+
+            _uiState.update { AuthUIState() }
+        }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
+
 }

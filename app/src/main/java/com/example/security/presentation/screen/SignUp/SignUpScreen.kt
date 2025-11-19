@@ -1,4 +1,4 @@
-package com.example.security.presentation.screen.SignIn
+package com.example.security.presentation.screen.SignUp
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,25 +25,31 @@ import com.example.security.presentation.screen.viewModel.AuthViewModel
 import org.koin.compose.koinInject
 
 @Composable
-fun SignInScreen(modifier: Modifier = Modifier, navigateToSignUp: () -> Unit) {
+fun SignUpScreen(modifier: Modifier = Modifier, navigateToSignIn: () -> Unit) {
     val authViewModel: AuthViewModel = koinInject()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+
 
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Sign in to Security", style = MaterialTheme.typography.titleMedium)
-
+        Text("Sign up to Security", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             modifier = Modifier.padding(16.dp),
             placeholder = { Text("Email") },
-            label = { Text("Email") }
-        )
+            label = { Text("Email") })
+
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = { phoneNumber = it },
+            placeholder = { Text("Phone Number") },
+            label = { Text("Phone Number") })
 
         OutlinedTextField(
             value = password,
@@ -52,18 +58,17 @@ fun SignInScreen(modifier: Modifier = Modifier, navigateToSignUp: () -> Unit) {
             label = { Text("Password") })
 
         Button(modifier = Modifier.padding(12.dp), onClick = { }) {
-            Text(stringResource(R.string.sign_in))
+            Text(stringResource(R.string.sign_up))
         }
-
         Row {
-            Text("Don't have an account? ")
+            Text("Already have an account? ")
             Text(
-                "Sign up",
+                "Sign in",
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = { navigateToSignUp() }
+                    onClick = { navigateToSignIn() }
                 ))
         }
     }
