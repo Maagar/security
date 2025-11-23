@@ -1,75 +1,106 @@
 package com.example.security.presentation.screen.SignUp
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import android.app.Activity
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import com.example.security.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.security.presentation.screen.SignUp.component.RegistrationFormContent
+import com.example.security.presentation.screen.SignUp.component.SmsVerificationContent
 import com.example.security.presentation.screen.viewModel.AuthViewModel
+import com.example.security.presentation.util.startPhoneNumberVerification
 import org.koin.compose.koinInject
 
 @Composable
-fun SignUpScreen(modifier: Modifier = Modifier, navigateToSignIn: () -> Unit) {
+fun SignUpScreen(
+    modifier: Modifier = Modifier,
+    navigateToSignIn: () -> Unit,
+    navigateToHome: () -> Unit
+) {
     val authViewModel: AuthViewModel = koinInject()
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
+    val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+    val activity = context as? Activity
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Sign up to Security", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            modifier = Modifier.padding(16.dp),
-            placeholder = { Text("Email") },
-            label = { Text("Email") })
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var phoneNumber by rememberSaveable { mutableStateOf("") }
+    var smsCode by rememberSaveable { mutableStateOf("") }
 
-        OutlinedTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
-            placeholder = { Text("Phone Number") },
-            label = { Text("Phone Number") })
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Password") },
-            label = { Text("Password") })
-
-        Button(modifier = Modifier.padding(12.dp), onClick = { }) {
-            Text(stringResource(R.string.sign_up))
+    LaunchedEffect(uiState.isLoginSuccess) {
+        if (uiState.isLoginSuccess) {
+            navigateToHome()
         }
-        Row {
-            Text("Already have an account? ")
-            Text(
-                "Sign in",
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { navigateToSignIn() }
-                ))
+    }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { errorMsg ->
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            Log.e("error:", errorMsg)
+        }
+    }
+
+    LaunchedEffect(uiState.shouldStartPhoneNumberVerification) {
+        if (uiState.shouldStartPhoneNumberVerification && activity != null) {
+            startPhoneNumberVerification(
+                activity = activity,
+                phoneNumber = phoneNumber,
+                onCodeSent = { verificationId ->
+                    authViewModel.onCodeSent(verificationId)
+                },
+                onVerificationCompleted = { credential ->
+                    val code = credential.smsCode
+                    if (code != null) {
+                        authViewModel.onCodeSent("auto_verify_dummy_id")
+                        authViewModel.onVerifySmsCode(code)
+                    }
+                },
+                onVerificationFailed = { e ->
+                    Toast.makeText(context, "SMS error: ${e.message}", Toast.LENGTH_LONG).show()
+                    authViewModel.onRegistrationFailedOrCancelled()
+                }
+            )
+        }
+    }
+
+    BackHandler(enabled = uiState.isCodeSent) {
+        authViewModel.onRegistrationFailedOrCancelled()
+    }
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+        if (uiState.isLoading) {
+            CircularProgressIndicator()
+        } else {
+            if (uiState.isCodeSent) {
+                SmsVerificationContent(
+                    smsCode = smsCode,
+                    onSmsCodeChange = { smsCode = it },
+                    onVerifyClick = { authViewModel.onVerifySmsCode(smsCode) },
+                    onCancelClick = { authViewModel.onRegistrationFailedOrCancelled() }
+                )
+            } else {
+                RegistrationFormContent(
+                    email = email, onEmailChange = { email = it },
+                    password = password, onPasswordChange = { password = it },
+                    phoneNumber = phoneNumber, onPhoneNumberChange = { phoneNumber = it },
+                    onSignUpClick = { authViewModel.onRegisterClick(email, password) },
+                    navigateToSignIn = navigateToSignIn
+                )
+            }
         }
     }
 }

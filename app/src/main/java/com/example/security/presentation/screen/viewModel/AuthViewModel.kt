@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 data class AuthUIState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val operationSuccess: Boolean = false,
+    val isLoginSuccess: Boolean = false,
     val shouldStartPhoneNumberVerification: Boolean = false,
     val isCodeSent: Boolean = false,
     val verificationId: String? = null,
@@ -35,11 +35,11 @@ class AuthViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null, operationSuccess = false) }
+            _uiState.update { it.copy(isLoading = true, error = null, isLoginSuccess = false) }
 
             val result = repository.signIn(email, password)
             result.onSuccess {
-                _uiState.update { it.copy(isLoading = false, operationSuccess = true) }
+                _uiState.update { it.copy(isLoading = false, isLoginSuccess = true) }
             }.onFailure { error ->
                 _uiState.update { it.copy(isLoading = false, error = error.message) }
             }
@@ -91,7 +91,7 @@ class AuthViewModel(
             val result = repository.linkPhoneNumber(verificationId, code)
 
             result.onSuccess {
-                _uiState.update { it.copy(isLoading = false, operationSuccess = true) }
+                _uiState.update { it.copy(isLoading = false, isLoginSuccess = true) }
             }.onFailure { error ->
                 _uiState.update { it.copy(isLoading = false, error = error.message) }
             }

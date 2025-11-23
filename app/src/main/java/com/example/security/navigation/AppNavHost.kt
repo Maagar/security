@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.NavHost
+import com.example.security.presentation.screen.Home.HomeScreen
 import com.example.security.presentation.screen.SignIn.SignInScreen
 import com.example.security.presentation.screen.SignUp.SignUpScreen
 
@@ -12,17 +13,25 @@ import com.example.security.presentation.screen.SignUp.SignUpScreen
 fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(
         navController = navController,
-        startDestination = Screen.signIn.route
+        startDestination = Screen.SignIn.route
     ) {
-        composable(Screen.signIn.route) {
+        composable(Screen.SignIn.route) {
             SignInScreen(modifier, navigateToSignUp = {
-                navController.navigate(Screen.signUp.route)
+                navController.navigate(Screen.SignUp.route)
             })
         }
-        composable(Screen.signUp.route) {
-            SignUpScreen(modifier, navigateToSignIn = {
-                navController.navigate(Screen.signIn.route)
-            })
+        composable(Screen.SignUp.route) {
+            SignUpScreen(
+                modifier,
+                navigateToSignIn = {
+                    navController.navigate(Screen.SignIn.route)
+                },
+                navigateToHome = {
+                    navController.navigate(Screen.Home.route)
+                })
+        }
+        composable(Screen.Home.route) {
+            HomeScreen()
         }
     }
 }

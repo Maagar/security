@@ -40,7 +40,6 @@ fun SignInScreen(modifier: Modifier = Modifier, navigateToSignUp: () -> Unit) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            modifier = Modifier.padding(16.dp),
             placeholder = { Text("Email") },
             label = { Text("Email") }
         )
