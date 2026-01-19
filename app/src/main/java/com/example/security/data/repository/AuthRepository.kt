@@ -18,7 +18,8 @@ interface AuthRepository {
     suspend fun signUp(email: String, password: String): Result<FirebaseUser>
     suspend fun linkPhoneNumber(verificationId: String, smsCode: String): Result<FirebaseUser>
     suspend fun deleteAccount(): Result<Unit>
-    suspend fun signOut()
+    suspend fun signOut(): Result<Unit>
+    suspend fun verify2FALogin(verificationId: String, smsCode: String): Result<Unit>
 }
 
 class AuthRepositoryImpl(
@@ -72,7 +73,18 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun signOut() {
-        auth.signOut()
+    override suspend fun signOut(): Result<Unit> {
+        return runCatching {
+            auth.signOut()
+        }
+    }
+
+    override suspend fun verify2FALogin(verificationId: String, smsCode: String): Result<Unit> {
+        return runCatching {
+            val user = auth.currentUser ?: throw Exception("No user logged in")
+            val credential = PhoneAuthProvider.getCredential(verificationId, smsCode)
+            user.reauthenticate(credential).await()
+            Unit
+        }
     }
 }

@@ -14,9 +14,14 @@ data class AuthUIState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isLoginSuccess: Boolean = false,
+
     val shouldStartPhoneNumberVerification: Boolean = false,
     val isCodeSent: Boolean = false,
     val verificationId: String? = null,
+
+    val isTwoFactorMode: Boolean = false,
+    val tempPhoneNumber: String? = null,
+    val isPhoneNumberMissing: Boolean = false
 )
 
 class AuthViewModel(
@@ -38,8 +43,31 @@ class AuthViewModel(
             _uiState.update { it.copy(isLoading = true, error = null, isLoginSuccess = false) }
 
             val result = repository.signIn(email, password)
-            result.onSuccess {
-                _uiState.update { it.copy(isLoading = false, isLoginSuccess = true) }
+            result.onSuccess { user ->
+                val phoneNumber = user.phoneNumber
+
+                if (!phoneNumber.isNullOrBlank()) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            tempPhoneNumber = phoneNumber,
+                            isTwoFactorMode = true,
+                            shouldStartPhoneNumberVerification = true,
+                            isPhoneNumberMissing = false
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isTwoFactorMode = false,
+                            isPhoneNumberMissing = true,
+                            shouldStartPhoneNumberVerification = false
+                        )
+                    }
+
+
+                }
             }.onFailure { error ->
                 _uiState.update { it.copy(isLoading = false, error = error.message) }
             }
@@ -59,7 +87,6 @@ class AuthViewModel(
             result.onSuccess {
                 _uiState.update { state ->
                     state.copy(
-                        isLoading = false,
                         shouldStartPhoneNumberVerification = true,
                         error = null
                     )
@@ -70,9 +97,27 @@ class AuthViewModel(
         }
     }
 
+    fun onMissingPhoneNumberSubmitted(phone: String) {
+        if (phone.isBlank()) {
+            _uiState.update { it.copy(error = "Phone number cannot be blank") }
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                tempPhoneNumber = phone,
+                shouldStartPhoneNumberVerification = true,
+                isPhoneNumberMissing = false,
+                error = null
+            )
+        }
+
+    }
+
     fun onCodeSent(verificationId: String) {
         _uiState.update {
             it.copy(
+                isLoading = false,
                 isCodeSent = true,
                 verificationId = verificationId,
                 shouldStartPhoneNumberVerification = false
@@ -88,10 +133,21 @@ class AuthViewModel(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = repository.linkPhoneNumber(verificationId, code)
+            val result = if (_uiState.value.isTwoFactorMode) {
+                repository.verify2FALogin(verificationId, code)
+            } else {
+                repository.linkPhoneNumber(verificationId, code)
+            }
 
             result.onSuccess {
-                _uiState.update { it.copy(isLoading = false, isLoginSuccess = true) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isLoginSuccess = true,
+                        isCodeSent = false,
+                        isPhoneNumberMissing = false
+                    )
+                }
             }.onFailure { error ->
                 _uiState.update { it.copy(isLoading = false, error = error.message) }
             }
@@ -99,17 +155,19 @@ class AuthViewModel(
     }
 
     fun onRegistrationFailedOrCancelled() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            repository.deleteAccount()
-
+        if (!_uiState.value.isTwoFactorMode) {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+                repository.deleteAccount()
+                _uiState.update { AuthUIState() }
+            }
+        } else {
             _uiState.update { AuthUIState() }
+
         }
     }
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
-
 }

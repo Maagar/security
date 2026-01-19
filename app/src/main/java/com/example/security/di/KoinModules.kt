@@ -3,6 +3,7 @@ package com.example.security.di
 import com.example.security.data.repository.AuthRepository
 import com.example.security.data.repository.AuthRepositoryImpl
 import com.example.security.presentation.screen.viewModel.AuthViewModel
+import com.example.security.presentation.screen.viewModel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import org.koin.core.context.startKoin
 import org.koin.core.logger.PrintLogger
@@ -21,11 +22,9 @@ val appModule = module {
         )
     }
 
-    viewModel {
-        AuthViewModel(
-            repository = get()
-        )
-    }
+    viewModel { AuthViewModel(repository = get()) }
+    viewModel { HomeViewModel(repository = get()) }
+
 
 }
 

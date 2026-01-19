@@ -16,22 +16,40 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         startDestination = Screen.SignIn.route
     ) {
         composable(Screen.SignIn.route) {
-            SignInScreen(modifier, navigateToSignUp = {
-                navController.navigate(Screen.SignUp.route)
-            })
+            SignInScreen(
+                navigateToSignUp = {
+                    navController.navigate(Screen.SignUp.route) {
+                        popUpTo(Screen.SignIn.route) { inclusive = true }
+                    }
+                },
+                navigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.SignIn.route) { inclusive = true }
+                    }
+                })
         }
         composable(Screen.SignUp.route) {
             SignUpScreen(
                 modifier,
                 navigateToSignIn = {
-                    navController.navigate(Screen.SignIn.route)
+                    navController.navigate(Screen.SignIn.route) {
+                        popUpTo(Screen.SignUp.route) { inclusive = true }
+                    }
                 },
                 navigateToHome = {
-                    navController.navigate(Screen.Home.route)
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.SignUp.route) { inclusive = true }
+                    }
                 })
         }
         composable(Screen.Home.route) {
-            HomeScreen()
+            HomeScreen(
+                onNavigateToSignIn = {
+                    navController.navigate(Screen.SignIn.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

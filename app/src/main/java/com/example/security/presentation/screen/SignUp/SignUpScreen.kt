@@ -40,6 +40,9 @@ fun SignUpScreen(
     var phoneNumber by rememberSaveable { mutableStateOf("") }
     var smsCode by rememberSaveable { mutableStateOf("") }
 
+    var showPassword by rememberSaveable { mutableStateOf(false) }
+
+
     LaunchedEffect(uiState.isLoginSuccess) {
         if (uiState.isLoginSuccess) {
             navigateToHome()
@@ -50,6 +53,29 @@ fun SignUpScreen(
         uiState.error?.let { errorMsg ->
             Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
             Log.e("error:", errorMsg)
+        }
+    }
+
+    LaunchedEffect(uiState.shouldStartPhoneNumberVerification) {
+        if (uiState.shouldStartPhoneNumberVerification && activity != null && uiState.tempPhoneNumber != null) {
+            startPhoneNumberVerification(
+                activity = activity,
+                phoneNumber = uiState.tempPhoneNumber!!,
+                onCodeSent = { verificationId ->
+                    authViewModel.onCodeSent(verificationId)
+                },
+                onVerificationCompleted = { credential ->
+                    val code = credential.smsCode
+                    if (code != null) {
+                        authViewModel.onCodeSent("auto_verify_dummy_id")
+                        authViewModel.onVerifySmsCode(code)
+                    }
+                },
+                onVerificationFailed = { e ->
+                    Toast.makeText(context, "SMS error: ${e.message}", Toast.LENGTH_LONG).show()
+                    authViewModel.onRegistrationFailedOrCancelled()
+                }
+            )
         }
     }
 
@@ -94,9 +120,14 @@ fun SignUpScreen(
                 )
             } else {
                 RegistrationFormContent(
-                    email = email, onEmailChange = { email = it },
-                    password = password, onPasswordChange = { password = it },
-                    phoneNumber = phoneNumber, onPhoneNumberChange = { phoneNumber = it },
+                    email = email,
+                    onEmailChange = { email = it },
+                    password = password,
+                    onPasswordChange = { password = it },
+                    showPassword = showPassword,
+                    onShowPasswordChange = { showPassword = !showPassword },
+                    phoneNumber = phoneNumber,
+                    onPhoneNumberChange = { phoneNumber = it },
                     onSignUpClick = { authViewModel.onRegisterClick(email, password) },
                     navigateToSignIn = navigateToSignIn
                 )

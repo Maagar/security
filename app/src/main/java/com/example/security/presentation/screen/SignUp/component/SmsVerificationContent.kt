@@ -49,9 +49,9 @@ fun SmsVerificationContent(
             onClick = onVerifyClick,
             modifier = Modifier.fillMaxWidth()
         ) { Text("Verify Code") }
-    }
 
-    TextButton(onClick = onCancelClick) {
-        Text("Cancel")
+        TextButton(onClick = onCancelClick) {
+            Text("Cancel")
+        }
     }
 }
