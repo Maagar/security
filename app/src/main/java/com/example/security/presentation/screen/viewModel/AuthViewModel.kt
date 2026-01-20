@@ -87,7 +87,10 @@ class AuthViewModel(
             result.onSuccess {
                 _uiState.update { state ->
                     state.copy(
-                        shouldStartPhoneNumberVerification = true,
+                        isLoading = false,
+                        shouldStartPhoneNumberVerification = false,
+                        isPhoneNumberMissing = true,
+                        isTwoFactorMode = false,
                         error = null
                     )
                 }

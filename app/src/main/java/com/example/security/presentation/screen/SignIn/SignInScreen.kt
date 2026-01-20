@@ -1,10 +1,9 @@
 package com.example.security.presentation.screen.SignIn
 
+import androidx.compose.foundation.layout.Box
 import android.app.Activity
 import android.widget.Toast
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.example.security.presentation.component.LoadingOverlay
 import com.example.security.presentation.screen.SignIn.component.LoginFormContent
 import com.example.security.presentation.screen.SignIn.component.MissingPhoneNumberContent
 import com.example.security.presentation.screen.SignUp.component.SmsVerificationContent
@@ -36,6 +36,7 @@ fun SignInScreen(navigateToSignUp: () -> Unit, navigateToHome: () -> Unit) {
     var showPassword by rememberSaveable { mutableStateOf(false) }
     var smsCode by rememberSaveable { mutableStateOf("") }
 
+    val isBusy = uiState.isLoading || (uiState.shouldStartPhoneNumberVerification && !uiState.isCodeSent)
 
     LaunchedEffect(uiState.isLoginSuccess) {
         if (uiState.isLoginSuccess) {
@@ -106,9 +107,8 @@ fun SignInScreen(navigateToSignUp: () -> Unit, navigateToHome: () -> Unit) {
             }
         }
 
-        if (uiState.isLoading) {
-            CircularProgressIndicator()
+        if (isBusy) {
+            LoadingOverlay(isBusy)
         }
     }
-
 }
