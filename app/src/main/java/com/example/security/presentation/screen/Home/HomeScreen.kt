@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -27,7 +28,8 @@ import org.koin.compose.koinInject
 
 @Composable
 fun HomeScreen(
-    onNavigateToSignIn: () -> Unit
+    onNavigateToSignIn: () -> Unit,
+    onNavigateToSecretNote: () -> Unit
 ) {
     val viewModel: HomeViewModel = koinInject()
     val uiState by viewModel.uiState.collectAsState()
@@ -53,6 +55,12 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Home Screen")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = onNavigateToSecretNote) {
+                Text("Open Secret Note Screen")
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.NavHost
 import com.example.security.presentation.screen.Home.HomeScreen
 import com.example.security.presentation.screen.PinInputScreen.PinScreen
+import com.example.security.presentation.screen.Secret.SecretNoteSCreen
 import com.example.security.presentation.screen.SignIn.SignInScreen
 import com.example.security.presentation.screen.SignUp.SignUpScreen
 import com.example.security.presentation.screen.viewModel.AuthViewModel
@@ -100,7 +101,7 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                     BiometricPromptManager(context as AppCompatActivity)
                 }
 
-                val biometricResult  by biometricManager.promptResults.collectAsState(null)
+                val biometricResult by biometricManager.promptResults.collectAsState(null)
 
                 LaunchedEffect(biometricResult) {
                     if (biometricResult is BiometricPromptManager.BiometricResult.AuthenticationSuccess) {
@@ -143,8 +144,16 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                         navController.navigate(Screen.SignIn.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
+                    },
+                    onNavigateToSecretNote = {
+                        navController.navigate(Screen.SecretNote.route)
                     }
                 )
+            }
+
+            composable(Screen.SecretNote.route) {
+                SecretNoteSCreen(
+                    onNavigateBack = { navController.popBackStack() })
             }
         }
     }
