@@ -23,7 +23,7 @@ import com.example.security.presentation.util.startPhoneNumberVerification
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun SignInScreen(navigateToSignUp: () -> Unit, navigateToHome: () -> Unit) {
+fun SignInScreen(navigateToSignUp: () -> Unit, navigateToPinSetup: () -> Unit) {
 
     val authViewModel: AuthViewModel = koinViewModel()
 
@@ -40,7 +40,7 @@ fun SignInScreen(navigateToSignUp: () -> Unit, navigateToHome: () -> Unit) {
 
     LaunchedEffect(uiState.isLoginSuccess) {
         if (uiState.isLoginSuccess) {
-            navigateToHome()
+            navigateToPinSetup()
         }
     }
 

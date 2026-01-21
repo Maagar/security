@@ -3,6 +3,7 @@ package com.example.security.presentation.screen.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.security.data.repository.AuthRepository
+import com.example.security.data.repository.PinRepository
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,19 +22,112 @@ data class AuthUIState(
 
     val isTwoFactorMode: Boolean = false,
     val tempPhoneNumber: String? = null,
-    val isPhoneNumberMissing: Boolean = false
+    val isPhoneNumberMissing: Boolean = false,
+
+    val isPinSet: Boolean = false,
+    val isPinVerified: Boolean = false,
+    val pinError: String? = null,
+    val isPinConfirmStep: Boolean = false
 )
 
 class AuthViewModel(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val pinRepository: PinRepository
 ) : ViewModel() {
+
+    private val _startDestination = MutableStateFlow<String?>(null)
+    val startDestination: StateFlow<String?> = _startDestination.asStateFlow()
 
     val authState: StateFlow<FirebaseUser?> = repository.getAuthState()
 
     private val _uiState = MutableStateFlow(AuthUIState())
     val uiState: StateFlow<AuthUIState> = _uiState.asStateFlow()
 
+    private var tempPin: String? = null
+
+    init {
+        checkStartDestination()
+        observeAuthState()
+    }
+
+    private fun observeAuthState() {
+        viewModelScope.launch {
+            authState.collect { user ->
+                if (user == null) {
+                    _uiState.update { AuthUIState(
+                        isLoading = false,
+                        error = null,
+                        isLoginSuccess = false,
+                        isPinSet = false,
+                        isPinVerified = false,
+                        isPinConfirmStep = false
+                    ) }
+                }
+            }
+        }
+    }
+    private fun checkStartDestination() {
+        viewModelScope.launch {
+            val user = repository.currentUser
+            if (user == null) {
+                _startDestination.value = "sign_in_screen"
+            } else {
+                val hasPin = pinRepository.hasPin()
+                if (hasPin) {
+                    _startDestination.value = "pin_login_screen"
+                } else {
+                    _startDestination.value = "pin_setup_screen"
+                }
+            }
+        }
+    }
+
+    fun onSetPin(pin: String) {
+        viewModelScope.launch {
+            if (!_uiState.value.isPinConfirmStep) {
+                tempPin = pin
+                _uiState.update { it.copy(isPinConfirmStep = true, pinError = null) }
+            } else {
+                if (pin == tempPin) {
+                    pinRepository.savePin(pin)
+                    _uiState.update { it.copy(isPinSet = true, pinError = null) }
+                } else {
+                    tempPin = null
+                    _uiState.update {
+                        it.copy(
+                            isPinConfirmStep = false,
+                            pinError = "Pins do not match"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun onVerifyPin(pin: String) {
+        viewModelScope.launch {
+            val isValid = pinRepository.validatePin(pin)
+            if (isValid) {
+                _uiState.update { it.copy(isPinVerified = true, pinError = null) }
+            } else {
+                _uiState.update { it.copy(pinError = "Invalid pin") }
+            }
+        }
+    }
+
+    suspend fun hasUserPin(): Boolean {
+        return pinRepository.hasPin()
+    }
+
     fun onLoginClick(email: String, password: String) {
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                error = null,
+                isLoginSuccess = false,
+                isPinSet = false
+            )
+        }
         if (email.isBlank() || password.isBlank()) {
             _uiState.update { it.copy(error = "Email and password cannot be blank") }
             return
@@ -85,12 +179,14 @@ class AuthViewModel(
 
             val result = repository.signUp(email, password)
             result.onSuccess {
+                pinRepository.clearPin()
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
                         shouldStartPhoneNumberVerification = false,
                         isPhoneNumberMissing = true,
                         isTwoFactorMode = false,
+                        isPinSet = false,
                         error = null
                     )
                 }

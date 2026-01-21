@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.tasks.await
 
 interface AuthRepository {
+    val currentUser: FirebaseUser?
     fun getAuthState(): StateFlow<FirebaseUser?>
     suspend fun signIn(email: String, password: String): Result<FirebaseUser>
     suspend fun signUp(email: String, password: String): Result<FirebaseUser>
@@ -25,6 +26,10 @@ interface AuthRepository {
 class AuthRepositoryImpl(
     private val auth: FirebaseAuth
 ) : AuthRepository {
+
+    override val currentUser: FirebaseUser?
+        get() = auth.currentUser
+
 
     override fun getAuthState(): StateFlow<FirebaseUser?> = callbackFlow {
         val authStateListener = FirebaseAuth.AuthStateListener { auth ->

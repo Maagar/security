@@ -3,6 +3,7 @@ package com.example.security.presentation.screen.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.security.data.repository.AuthRepository
+import com.example.security.data.repository.PinRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +17,8 @@ data class HomeUiState(
 )
 
 class HomeViewModel(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val pinRepository: PinRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -30,6 +32,7 @@ class HomeViewModel(
 
             result.onSuccess {
                 _uiState.update { it.copy(isLoading = false, isSignedOut = true) }
+                pinRepository.clearPin()
             }.onFailure { error ->
                 _uiState.update { it.copy(isLoading = false, signOutError = error.message ?: "Sign out failed") }
             }

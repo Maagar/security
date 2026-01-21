@@ -72,5 +72,6 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.appcheck.debug)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
 }

@@ -27,7 +27,7 @@ import org.koin.compose.koinInject
 fun SignUpScreen(
     modifier: Modifier = Modifier,
     navigateToSignIn: () -> Unit,
-    navigateToHome: () -> Unit
+    navigateToPinSetup: () -> Unit
 ) {
     val authViewModel: AuthViewModel = koinInject()
     val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -46,7 +46,7 @@ fun SignUpScreen(
 
     LaunchedEffect(uiState.isLoginSuccess) {
         if (uiState.isLoginSuccess) {
-            navigateToHome()
+            navigateToPinSetup()
         }
     }
 
