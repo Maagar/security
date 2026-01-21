@@ -73,5 +73,5 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.appcheck.debug)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-
+    implementation("androidx.biometric:biometric:1.1.0")
 }

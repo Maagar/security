@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.security.data.repository.AuthRepository
 import com.example.security.data.repository.PinRepository
+import com.example.security.data.repository.SettingsRepository
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,8 +33,12 @@ data class AuthUIState(
 
 class AuthViewModel(
     private val repository: AuthRepository,
-    private val pinRepository: PinRepository
+    private val pinRepository: PinRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
+
+    private val _isBiometricEnabled = MutableStateFlow(false)
+    val isBiometricEnabled: StateFlow<Boolean> = _isBiometricEnabled.asStateFlow()
 
     private val _startDestination = MutableStateFlow<String?>(null)
     val startDestination: StateFlow<String?> = _startDestination.asStateFlow()
@@ -48,24 +53,40 @@ class AuthViewModel(
     init {
         checkStartDestination()
         observeAuthState()
+        checkBiometricSettings()
+    }
+
+    private fun checkBiometricSettings() {
+        viewModelScope.launch {
+            _isBiometricEnabled.value = settingsRepository.isBiometricEnabled()
+        }
+    }
+
+    fun onBiometricSuccess() {
+        _uiState.update {
+            it.copy(isPinVerified = true, pinError = null)
+        }
     }
 
     private fun observeAuthState() {
         viewModelScope.launch {
             authState.collect { user ->
                 if (user == null) {
-                    _uiState.update { AuthUIState(
-                        isLoading = false,
-                        error = null,
-                        isLoginSuccess = false,
-                        isPinSet = false,
-                        isPinVerified = false,
-                        isPinConfirmStep = false
-                    ) }
+                    _uiState.update {
+                        AuthUIState(
+                            isLoading = false,
+                            error = null,
+                            isLoginSuccess = false,
+                            isPinSet = false,
+                            isPinVerified = false,
+                            isPinConfirmStep = false
+                        )
+                    }
                 }
             }
         }
     }
+
     private fun checkStartDestination() {
         viewModelScope.launch {
             val user = repository.currentUser

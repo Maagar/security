@@ -1,5 +1,6 @@
 package com.example.security.navigation
 
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -7,8 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.NavHost
@@ -17,6 +20,7 @@ import com.example.security.presentation.screen.PinInputScreen.PinScreen
 import com.example.security.presentation.screen.SignIn.SignInScreen
 import com.example.security.presentation.screen.SignUp.SignUpScreen
 import com.example.security.presentation.screen.viewModel.AuthViewModel
+import com.example.security.presentation.util.BiometricPromptManager
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -89,6 +93,27 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
 
             composable(Screen.PinLogin.route) {
                 val uiState by authViewModel.uiState.collectAsState()
+                val isBiometricEnabled by authViewModel.isBiometricEnabled.collectAsState()
+
+                val context = LocalContext.current
+                val biometricManager = remember {
+                    BiometricPromptManager(context as AppCompatActivity)
+                }
+
+                val biometricResult  by biometricManager.promptResults.collectAsState(null)
+
+                LaunchedEffect(biometricResult) {
+                    if (biometricResult is BiometricPromptManager.BiometricResult.AuthenticationSuccess) {
+                        authViewModel.onBiometricSuccess()
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    if (isBiometricEnabled) {
+                        biometricManager.showBiometricPrompt()
+                    }
+                }
+
                 LaunchedEffect(uiState.isPinVerified) {
                     if (uiState.isPinVerified) {
                         navController.navigate(Screen.Home.route) {
@@ -101,6 +126,13 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                     error = uiState.pinError,
                     onPinFilled = { pin ->
                         authViewModel.onVerifyPin(pin)
+                    },
+                    onPinChange = {
+                        authViewModel.clearError()
+                    },
+                    showBiometricIcon = isBiometricEnabled,
+                    onBiometricClick = {
+                        biometricManager.showBiometricPrompt()
                     }
                 )
             }

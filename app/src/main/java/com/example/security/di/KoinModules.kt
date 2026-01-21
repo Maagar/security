@@ -4,6 +4,8 @@ import com.example.security.data.repository.AuthRepository
 import com.example.security.data.repository.AuthRepositoryImpl
 import com.example.security.data.repository.PinRepository
 import com.example.security.data.repository.PinRepositoryImpl
+import com.example.security.data.repository.SettingsRepository
+import com.example.security.data.repository.SettingsRepositoryImpl
 import com.example.security.presentation.screen.viewModel.AuthViewModel
 import com.example.security.presentation.screen.viewModel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -30,9 +32,16 @@ val appModule = module {
         )
     }
 
+    single<SettingsRepository> {
+        SettingsRepositoryImpl(
+            context = get()
+        )
+    }
 
-    viewModel { AuthViewModel(repository = get(), pinRepository = get()) }
-    viewModel { HomeViewModel(repository = get(), pinRepository = get()) }
+
+
+    viewModel { AuthViewModel(repository = get(), pinRepository = get(), settingsRepository = get()) }
+    viewModel { HomeViewModel(repository = get(), pinRepository = get(), settingsRepository = get()) }
 
 
 }
