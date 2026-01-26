@@ -46,7 +46,7 @@ fun SignInScreen(navigateToSignUp: () -> Unit, navigateToPinSetup: () -> Unit) {
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { errorMsg ->
-            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
             authViewModel.clearError()
         }
     }

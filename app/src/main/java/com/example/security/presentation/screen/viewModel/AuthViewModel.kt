@@ -48,12 +48,32 @@ class AuthViewModel(
     private val _uiState = MutableStateFlow(AuthUIState())
     val uiState: StateFlow<AuthUIState> = _uiState.asStateFlow()
 
+    private val _isAccountLocked = MutableStateFlow(false)
+    val isAccountLocked = _isAccountLocked.asStateFlow()
+
+
     private var tempPin: String? = null
 
     init {
         checkStartDestination()
         observeAuthState()
         checkBiometricSettings()
+    }
+
+    fun startMonitoringAccountStatus() {
+        viewModelScope.launch {
+            repository.observeUserStatus().collect { status ->
+                if (status == "BANNED" || status == "LOCKED") {
+                    repository.signOut()
+                    _isAccountLocked.value = true
+                    _startDestination.value = "sign_in_screen"
+                }
+            }
+        }
+    }
+
+    fun resetLockStatus() {
+        _isAccountLocked.value = false
     }
 
     private fun checkBiometricSettings() {
@@ -63,6 +83,7 @@ class AuthViewModel(
     }
 
     fun onBiometricSuccess() {
+        startMonitoringAccountStatus()
         _uiState.update {
             it.copy(isPinVerified = true, pinError = null)
         }
@@ -93,6 +114,12 @@ class AuthViewModel(
             if (user == null) {
                 _startDestination.value = "sign_in_screen"
             } else {
+                if (user.phoneNumber.isNullOrBlank()) {
+                    repository.signOut()
+                    _startDestination.value = "sign_in_screen"
+                    return@launch
+                }
+                startMonitoringAccountStatus()
                 val hasPin = pinRepository.hasPin()
                 if (hasPin) {
                     _startDestination.value = "pin_login_screen"
@@ -129,6 +156,7 @@ class AuthViewModel(
         viewModelScope.launch {
             val isValid = pinRepository.validatePin(pin)
             if (isValid) {
+                startMonitoringAccountStatus()
                 _uiState.update { it.copy(isPinVerified = true, pinError = null) }
             } else {
                 _uiState.update { it.copy(pinError = "Invalid pin") }

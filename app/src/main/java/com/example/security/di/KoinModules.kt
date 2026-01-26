@@ -30,7 +30,8 @@ val appModule = module {
 
     single<AuthRepository> {
         AuthRepositoryImpl(
-            auth = get()
+            auth = get(),
+            firestore = get()
         )
     }
 

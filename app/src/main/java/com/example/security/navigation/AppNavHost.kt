@@ -1,5 +1,6 @@
 package com.example.security.navigation
 
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +30,19 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
     val authViewModel: AuthViewModel = koinViewModel()
 
     val startRoute by authViewModel.startDestination.collectAsState()
+
+    val isLocked by authViewModel.isAccountLocked.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(isLocked) {
+        if (isLocked) {
+            Toast.makeText(context, "Account has been locked remotely", Toast.LENGTH_LONG).show()
+            navController.navigate(Screen.SignIn.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+            }
+            authViewModel.resetLockStatus()
+        }
+    }
 
     if (startRoute == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

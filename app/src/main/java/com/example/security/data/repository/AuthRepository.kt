@@ -3,9 +3,12 @@ package com.example.security.data.repository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
@@ -21,10 +24,12 @@ interface AuthRepository {
     suspend fun deleteAccount(): Result<Unit>
     suspend fun signOut(): Result<Unit>
     suspend fun verify2FALogin(verificationId: String, smsCode: String): Result<Unit>
+    fun observeUserStatus(): kotlinx.coroutines.flow.Flow<String>
 }
 
 class AuthRepositoryImpl(
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
 ) : AuthRepository {
 
     override val currentUser: FirebaseUser?
@@ -47,7 +52,9 @@ class AuthRepositoryImpl(
     override suspend fun signIn(email: String, password: String): Result<FirebaseUser> {
         return runCatching {
             val userCredentials = auth.signInWithEmailAndPassword(email, password).await()
-            userCredentials.user!!
+            val user = userCredentials.user!!
+            checkUserStatusOrThrow(user.uid)
+            user
         }
     }
 
@@ -63,7 +70,8 @@ class AuthRepositoryImpl(
         smsCode: String
     ): Result<FirebaseUser> {
         return runCatching {
-            val currentUser = auth.currentUser ?: throw Exception("No user loggged in to link phone number")
+            val currentUser =
+                auth.currentUser ?: throw Exception("No user loggged in to link phone number")
 
             val credential = PhoneAuthProvider.getCredential(verificationId, smsCode)
             val result = currentUser.linkWithCredential(credential).await()
@@ -89,7 +97,46 @@ class AuthRepositoryImpl(
             val user = auth.currentUser ?: throw Exception("No user logged in")
             val credential = PhoneAuthProvider.getCredential(verificationId, smsCode)
             user.reauthenticate(credential).await()
+            checkUserStatusOrThrow(user.uid)
             Unit
+        }
+    }
+
+    override fun observeUserStatus(): Flow<String> = callbackFlow {
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            close()
+            return@callbackFlow
+        }
+        val listener = firestore.collection("users").document(userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        android.util.Log.d(
+                            "AuthRepository",
+                            "Wylogowano - zatrzymuję nasłuch statusu"
+                        )
+                        close()
+                    } else {
+                        close(error)
+                    }
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    val status = snapshot.getString("accountStatus") ?: "ACTIVE"
+                    trySend(status)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    private suspend fun checkUserStatusOrThrow(uid: String) {
+        val snapshot = firestore.collection("users").document(uid).get().await()
+        val status = snapshot.getString("accountStatus") ?: "ACTIVE"
+
+        if (status == "BANNED" || status == "LOCKED") {
+            auth.signOut()
+            throw Exception("Twoje konto zostało zablokowane przez administratora.")
         }
     }
 }
