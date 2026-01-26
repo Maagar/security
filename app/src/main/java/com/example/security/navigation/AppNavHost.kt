@@ -19,15 +19,14 @@ import androidx.navigation.compose.NavHost
 import com.example.security.presentation.screen.Home.HomeScreen
 import com.example.security.presentation.screen.PinInputScreen.PinScreen
 import com.example.security.presentation.screen.Secret.SecretNoteSCreen
+import com.example.security.presentation.screen.SecurityAlert.SecurityAlertScreen
 import com.example.security.presentation.screen.SignIn.SignInScreen
 import com.example.security.presentation.screen.SignUp.SignUpScreen
 import com.example.security.presentation.screen.viewModel.AuthViewModel
 import com.example.security.presentation.util.BiometricPromptManager
-import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
-    val authViewModel: AuthViewModel = koinViewModel()
+fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier, authViewModel: AuthViewModel) {
 
     val startRoute by authViewModel.startDestination.collectAsState()
 
@@ -117,6 +116,15 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
 
                 val biometricResult by biometricManager.promptResults.collectAsState(null)
 
+                LaunchedEffect(uiState.destinationAfterLogin) {
+                    uiState.destinationAfterLogin?.let { target ->
+                        navController.navigate(target) {
+                            popUpTo(Screen.PinLogin.route) { inclusive = true }
+                        }
+                        authViewModel.onNavigationConsumed()
+                    }
+                }
+
                 LaunchedEffect(biometricResult) {
                     if (biometricResult is BiometricPromptManager.BiometricResult.AuthenticationSuccess) {
                         authViewModel.onBiometricSuccess()
@@ -130,7 +138,7 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                 }
 
                 LaunchedEffect(uiState.isPinVerified) {
-                    if (uiState.isPinVerified) {
+                    if (uiState.isPinVerified && uiState.destinationAfterLogin == null) {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.PinLogin.route) { inclusive = true }
                         }
@@ -161,13 +169,21 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                     },
                     onNavigateToSecretNote = {
                         navController.navigate(Screen.SecretNote.route)
+                    },
+                    onNavigateToAlerts = {
+                        navController.navigate(Screen.SecurityAlert.route)
                     }
                 )
             }
 
             composable(Screen.SecretNote.route) {
                 SecretNoteSCreen(
-                    onNavigateBack = { navController.popBackStack() })
+                    onNavigateBack = { navController.navigate(Screen.Home.route) })
+            }
+
+            composable(Screen.SecurityAlert.route) {
+                SecurityAlertScreen(
+                    onNavigateBack = { navController.navigate(Screen.Home.route) })
             }
         }
     }

@@ -28,7 +28,9 @@ data class AuthUIState(
     val isPinSet: Boolean = false,
     val isPinVerified: Boolean = false,
     val pinError: String? = null,
-    val isPinConfirmStep: Boolean = false
+    val isPinConfirmStep: Boolean = false,
+
+    val destinationAfterLogin: String? = null
 )
 
 class AuthViewModel(
@@ -60,6 +62,16 @@ class AuthViewModel(
         checkBiometricSettings()
     }
 
+    private var pendingDestination: String? = null
+
+    fun setPendingDestination(destination: String) {
+        pendingDestination = destination
+    }
+
+    fun onNavigationConsumed() {
+        _uiState.update { it.copy(destinationAfterLogin = null) }
+    }
+
     fun startMonitoringAccountStatus() {
         viewModelScope.launch {
             repository.observeUserStatus().collect { status ->
@@ -83,10 +95,19 @@ class AuthViewModel(
     }
 
     fun onBiometricSuccess() {
-        startMonitoringAccountStatus()
-        _uiState.update {
-            it.copy(isPinVerified = true, pinError = null)
+        viewModelScope.launch {
+            repository.updateFcmToken()
         }
+        startMonitoringAccountStatus()
+        if (pendingDestination != null) {
+            _uiState.update {
+                it.copy(destinationAfterLogin = pendingDestination, isPinVerified = false, pinError = null)
+            }
+            pendingDestination = null
+        } else {
+            _uiState.update { it.copy(isPinVerified = true, pinError = null) }
+        }
+
     }
 
     private fun observeAuthState() {
@@ -157,7 +178,15 @@ class AuthViewModel(
             val isValid = pinRepository.validatePin(pin)
             if (isValid) {
                 startMonitoringAccountStatus()
-                _uiState.update { it.copy(isPinVerified = true, pinError = null) }
+
+                if (pendingDestination != null) {
+                    _uiState.update {
+                        it.copy(destinationAfterLogin = pendingDestination, pinError = null)
+                    }
+                    pendingDestination = null
+                } else {
+                    _uiState.update { it.copy(isPinVerified = true, pinError = null) }
+                }
             } else {
                 _uiState.update { it.copy(pinError = "Invalid pin") }
             }
@@ -187,6 +216,7 @@ class AuthViewModel(
 
             val result = repository.signIn(email, password)
             result.onSuccess { user ->
+                repository.updateFcmToken()
                 val phoneNumber = user.phoneNumber
 
                 if (!phoneNumber.isNullOrBlank()) {

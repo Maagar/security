@@ -12,6 +12,7 @@ import com.example.security.data.repository.SettingsRepositoryImpl
 import com.example.security.presentation.screen.viewModel.AuthViewModel
 import com.example.security.presentation.screen.viewModel.HomeViewModel
 import com.example.security.presentation.screen.viewModel.SecretNoteViewModel
+import com.example.security.presentation.screen.viewModel.SecurityAlertsViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import org.koin.core.context.startKoin
@@ -55,7 +56,7 @@ val appModule = module {
     }
 
 
-
+    viewModel { SecurityAlertsViewModel() }
 
     viewModel {
         AuthViewModel(

@@ -7,11 +7,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +35,8 @@ import org.koin.compose.koinInject
 @Composable
 fun HomeScreen(
     onNavigateToSignIn: () -> Unit,
-    onNavigateToSecretNote: () -> Unit
+    onNavigateToSecretNote: () -> Unit,
+    onNavigateToAlerts: () -> Unit
 ) {
     val viewModel: HomeViewModel = koinInject()
     val uiState by viewModel.uiState.collectAsState()
@@ -60,6 +67,17 @@ fun HomeScreen(
 
             Button(onClick = onNavigateToSecretNote) {
                 Text("Open Secret Note Screen")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onNavigateToAlerts,
+                modifier = Modifier.fillMaxWidth(0.8f),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(Icons.Default.Warning, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Security Alerts Center")
             }
 
             Spacer(modifier = Modifier.height(16.dp))

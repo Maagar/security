@@ -1,10 +1,13 @@
 package com.example.security.data.repository
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -25,6 +28,7 @@ interface AuthRepository {
     suspend fun signOut(): Result<Unit>
     suspend fun verify2FALogin(verificationId: String, smsCode: String): Result<Unit>
     fun observeUserStatus(): kotlinx.coroutines.flow.Flow<String>
+    suspend fun updateFcmToken()
 }
 
 class AuthRepositoryImpl(
@@ -128,6 +132,21 @@ class AuthRepositoryImpl(
                 }
             }
         awaitClose { listener.remove() }
+    }
+
+    override suspend fun updateFcmToken() {
+        val userId = auth.currentUser?.uid ?: return
+        try {
+            val token = FirebaseMessaging.getInstance().token.await()
+            val data = mapOf("fcmToken" to token)
+            firestore.collection("users").document(userId)
+                .set(data, SetOptions.merge())
+                .await()
+
+            Log.d("FCM", "Token zaktualizowany: $token")
+        } catch (e: Exception) {
+            Log.e("FCM", "Błąd zapisu tokena", e)
+        }
     }
 
     private suspend fun checkUserStatusOrThrow(uid: String) {

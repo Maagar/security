@@ -8,4 +8,5 @@ sealed class Screen(val route: String) {
     object PinSetup : Screen("pin_setup_screen")
     object PinLogin : Screen("pin_login_screen")
     object SecretNote : Screen("secret_note_screen")
+    object SecurityAlert : Screen("security_alert_screen")
 }
