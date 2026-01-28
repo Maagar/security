@@ -109,6 +109,7 @@ class AuthRepositoryImpl(
     override fun observeUserStatus(): Flow<String> = callbackFlow {
         val userId = auth.currentUser?.uid
         if (userId == null) {
+            trySend("BANNED")
             close()
             return@callbackFlow
         }
@@ -116,12 +117,11 @@ class AuthRepositoryImpl(
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                        android.util.Log.d(
-                            "AuthRepository",
-                            "Wylogowano - zatrzymuję nasłuch statusu"
-                        )
+                        Log.d("AuthRepository", "Wykryto blokadę (Permission Denied) - wysyłam sygnał")
+                        trySend("BANNED")
                         close()
-                    } else {
+                    }
+                    else {
                         close(error)
                     }
                     return@addSnapshotListener
@@ -155,7 +155,7 @@ class AuthRepositoryImpl(
 
         if (status == "BANNED" || status == "LOCKED") {
             auth.signOut()
-            throw Exception("Twoje konto zostało zablokowane przez administratora.")
+            throw Exception("Your account has been locked by an administrator")
         }
     }
 }

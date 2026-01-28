@@ -1,5 +1,6 @@
 package com.example.security.presentation.screen.viewModel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.security.data.repository.AuthRepository
@@ -75,6 +76,7 @@ class AuthViewModel(
     fun startMonitoringAccountStatus() {
         viewModelScope.launch {
             repository.observeUserStatus().collect { status ->
+                Log.d("AuthViewModel", "Otrzymano status: $status")
                 if (status == "BANNED" || status == "LOCKED") {
                     repository.signOut()
                     _isAccountLocked.value = true
@@ -124,6 +126,8 @@ class AuthViewModel(
                             isPinConfirmStep = false
                         )
                     }
+                } else {
+                    startMonitoringAccountStatus()
                 }
             }
         }

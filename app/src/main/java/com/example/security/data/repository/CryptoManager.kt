@@ -69,7 +69,6 @@ class CryptoManager {
             e.printStackTrace()
             "Error decryption"
         }
-
     }
 }
 
